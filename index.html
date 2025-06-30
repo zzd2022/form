@@ -44,7 +44,7 @@
       const reader = new FileReader();
       reader.onload = async () => {
         const base64 = reader.result.split(',')[1];
-        const res = await fetch("https://script.google.com/macros/s/AKfycbz2JbT1ninAe8D_YtJkj52S469HSbVCNcj91--ScoG67XvYP4JYwUrFc9JmL9_JTEka/exec?type=uploadImage", {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbzgOIlWEoFdQ5qH-8nZqWfISNqZP9PCtajNQ9xZC9gMBdlKFqSY4Y-3IkXgkXbYexERag/exec?type=uploadImage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: file.name, size: file.size, type: file.type, data: base64 })
@@ -71,7 +71,7 @@
         accepte: true,
         images: window.uploadedImages
       };
-      const res = await fetch("https://script.google.com/macros/s/AKfycbz2JbT1ninAe8D_YtJkj52S469HSbVCNcj91--ScoG67XvYP4JYwUrFc9JmL9_JTEka/exec", {
+      const res = await fetch("https://script.google.com/macros/s/AKfycbzgOIlWEoFdQ5qH-8nZqWfISNqZP9PCtajNQ9xZC9gMBdlKFqSY4Y-3IkXgkXbYexERag/exec", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
