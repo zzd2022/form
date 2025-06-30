@@ -6,26 +6,75 @@
   <style>
     body { font-family: Arial; max-width: 600px; margin: 2em auto; }
     label { display: block; margin-top: 10px; }
-    .preview { max-width: 120px; max-height: 120px; margin: 5px 0; }
+    .preview { max-width: 100px; margin: 4px; }
+    .multi-products label { display: inline-block; margin-right: 10px; }
   </style>
 </head>
 <body>
   <h2>📦 产品接收表单</h2>
   <form id="receptionForm">
-    <label>送货公司：<input type="text" name="fournisseur" required></label>
-    <label>产品列表（每行一个）：<textarea name="produits_custom" rows="3" required></textarea></label>
+    <label>送货公司：
+      <select name="fournisseur" id="fournisseur" required>
+        <option value="">请选择</option>
+        <option value="orca">orca</option>
+        <option value="tang freres">tang freres</option>
+        <option value="balimoon">balimoon</option>
+        <option value="metto">metto</option>
+        <option value="sodivilette">sodivilette</option>
+        <option value="yoyi">yoyi</option>
+        <option value="xionghai">xionghai</option>
+      </select>
+    </label>
+
+    <label>产品（可多选）：</label>
+    <div class="multi-products" id="produitBox"></div>
+
     <label>数量：
       <select name="quantite" required></select>
     </label>
-    <label>签收人：<input type="text" name="signature" required></label>
+
+    <label>签收人：
+      <input type="text" name="signature" value="zhang" required />
+    </label>
+
     <label>照片上传：
       <input type="file" id="images" multiple accept="image/*" capture="environment">
     </label>
     <div id="previewArea"></div>
+
     <button type="submit">提交</button>
   </form>
-  <p id="resultat" style="margin-top:1em; font-weight:bold;"></p>
+
+  <p id="resultat" style="margin-top:1em;font-weight:bold;"></p>
+
   <script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzgOIlWEoFdQ5qH-8nZqWfISNqZP9PCtajNQ9xZC9gMBdlKFqSY4Y-3IkXgkXbYexERag/exec";
+    const produitsMap = {
+      "orca": ["saumon", "thon"],
+      "tang freres": ["虾饺"],
+      "balimoon": ["冻虾", "冻去皮烤鸭"],
+      "metto": ["猪肉", "chesse"],
+      "sodivilette": ["鸡腿", "猪肉"],
+      "yoyi": ["BOEUF AU FROMAGE"],
+      "xionghai": ["BOEUF AU FROMAGE"]
+    };
+
+    const produitBox = document.getElementById("produitBox");
+    const fournisseur = document.getElementById("fournisseur");
+    fournisseur.addEventListener("change", () => {
+      const ps = produitsMap[fournisseur.value] || [];
+      produitBox.innerHTML = ps.map(p =>
+        `<label><input type='checkbox' name='produits' value='${p}'>${p}</label>`
+      ).join("");
+    });
+
+    const q = document.querySelector("select[name='quantite']");
+    for (let i = 1; i <= 20; i++) {
+      const o = document.createElement("option");
+      o.value = i; o.textContent = i;
+      q.appendChild(o);
+    }
+
     window.uploadedImages = [];
 
     document.getElementById("images").addEventListener("change", function () {
@@ -44,7 +93,7 @@
       const reader = new FileReader();
       reader.onload = async () => {
         const base64 = reader.result.split(',')[1];
-        const res = await fetch("https://script.google.com/macros/s/AKfycbzgOIlWEoFdQ5qH-8nZqWfISNqZP9PCtajNQ9xZC9gMBdlKFqSY4Y-3IkXgkXbYexERag/exec?type=uploadImage", {
+        const res = await fetch(GAS_URL + "?type=uploadImage", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: file.name, size: file.size, type: file.type, data: base64 })
@@ -61,34 +110,28 @@
 
     document.getElementById("receptionForm").addEventListener("submit", async function (e) {
       e.preventDefault();
-      const formData = new FormData(this);
-      const produits = (formData.get("produits_custom") || "").split("\n").map(p => p.trim()).filter(p => p);
+      const form = e.target;
+      const produits = [...form.querySelectorAll("input[name='produits']:checked")].map(e => e.value);
       const payload = {
-        fournisseur: formData.get("fournisseur"),
+        fournisseur: form.fournisseur.value,
         produits,
-        quantite: formData.get("quantite"),
-        signature: formData.get("signature"),
+        quantite: form.quantite.value,
+        signature: form.signature.value,
         accepte: true,
         images: window.uploadedImages
       };
-      const res = await fetch("https://script.google.com/macros/s/AKfycbzgOIlWEoFdQ5qH-8nZqWfISNqZP9PCtajNQ9xZC9gMBdlKFqSY4Y-3IkXgkXbYexERag/exec", {
+      const res = await fetch(GAS_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
       const txt = await res.text();
       document.getElementById("resultat").textContent = txt;
-      this.reset();
+      form.reset();
       document.getElementById("previewArea").innerHTML = "";
+      produitBox.innerHTML = "";
       window.uploadedImages = [];
     });
-
-    const q = document.querySelector("select[name='quantite']");
-    for (let i = 1; i <= 20; i++) {
-      const o = document.createElement("option");
-      o.value = i; o.textContent = i;
-      q.appendChild(o);
-    }
   </script>
 </body>
 </html>
