@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>xinfu - 产品接收表单</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 2em auto; }
+    label { display: block; margin-top: 10px; }
+    .preview { max-width: 120px; max-height: 120px; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <h2>📦 产品接收表单</h2>
+  <form id="receptionForm">
+    <label>送货公司：<input type="text" name="fournisseur" required></label>
+    <label>产品列表（每行一个）：<textarea name="produits_custom" rows="3" required></textarea></label>
+    <label>数量：
+      <select name="quantite" required></select>
+    </label>
+    <label>签收人：<input type="text" name="signature" required></label>
+    <label>照片上传：
+      <input type="file" id="images" multiple accept="image/*" capture="environment">
+    </label>
+    <div id="previewArea"></div>
+    <button type="submit">提交</button>
+  </form>
+  <p id="resultat" style="margin-top:1em; font-weight:bold;"></p>
+  <script>
+    window.uploadedImages = [];
+
+    document.getElementById("images").addEventListener("change", function () {
+      const files = this.files;
+      for (let i = 0; i < files.length; i++) uploadImage(files[i]);
+    });
+
+    function isDuplicate(file) {
+      return window.uploadedImages.some(img =>
+        img.name === file.name && img.size === file.size && img.type === file.type
+      );
+    }
+
+    async function uploadImage(file) {
+      if (isDuplicate(file)) return;
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64 = reader.result.split(',')[1];
+        const res = await fetch("https://script.google.com/macros/s/AKfycbz2JbT1ninAe8D_YtJkj52S469HSbVCNcj91--ScoG67XvYP4JYwUrFc9JmL9_JTEka/exec?type=uploadImage", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: file.name, size: file.size, type: file.type, data: base64 })
+        });
+        const url = await res.text();
+        const imgData = { name: file.name, size: file.size, type: file.type, base64, url };
+        window.uploadedImages.push(imgData);
+        const d = document.createElement("div");
+        d.innerHTML = `<img class='preview' src="data:${file.type};base64,${base64}"><br><a href="${url}" target="_blank">${file.name}</a>`;
+        document.getElementById("previewArea").appendChild(d);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById("receptionForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const produits = (formData.get("produits_custom") || "").split("\n").map(p => p.trim()).filter(p => p);
+      const payload = {
+        fournisseur: formData.get("fournisseur"),
+        produits,
+        quantite: formData.get("quantite"),
+        signature: formData.get("signature"),
+        accepte: true,
+        images: window.uploadedImages
+      };
+      const res = await fetch("https://script.google.com/macros/s/AKfycbz2JbT1ninAe8D_YtJkj52S469HSbVCNcj91--ScoG67XvYP4JYwUrFc9JmL9_JTEka/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const txt = await res.text();
+      document.getElementById("resultat").textContent = txt;
+      this.reset();
+      document.getElementById("previewArea").innerHTML = "";
+      window.uploadedImages = [];
+    });
+
+    const q = document.querySelector("select[name='quantite']");
+    for (let i = 1; i <= 20; i++) {
+      const o = document.createElement("option");
+      o.value = i; o.textContent = i;
+      q.appendChild(o);
+    }
+  </script>
+</body>
+</html>
